@@ -63,7 +63,7 @@ public class ItemServiceImpl implements ItemService {
 
         Item item = getOnlyItemById(itemId);
 
-        if (item.getOwner().getId() != userId) {
+        if (!item.getOwner().getId().equals(userId)) {
             throw new AccessDeniedException("Данный пользователь не может изменить вещь");
         } else {
             if (itemUpdateRequestDto.getName() != null) {
@@ -135,7 +135,7 @@ public class ItemServiceImpl implements ItemService {
         BookingForItemResponse lastBookings = null;
         BookingForItemResponse nextBookings = null;
 
-        if (item.getOwner().getId() == userId) {
+        if (item.getOwner().getId().equals(userId)) {
 
             lastBookings = bookingForItemResponseMapper
                     .convert(bookingRepository.findFirstByItemIdAndStatusAndStartLessThanOrderByStartDesc(item.getId(),
