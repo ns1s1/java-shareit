@@ -1,19 +1,33 @@
 package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.booking.mapper.BookingForItemResponseMapper;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.BookingForItemResponse;
+import ru.practicum.shareit.booking.model.BookingStatus;
+import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.AccessDeniedException;
-import ru.practicum.shareit.exception.ValidationException;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.PatchItemDto;
-import ru.practicum.shareit.item.dto.PostItemDto;
+import ru.practicum.shareit.exception.BookingException;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.item.mapper.CommentMapper;
+import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.mapper.ItemWitchBookingsMapper;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.model.ItemForResponse;
+import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,73 +36,176 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    private final ItemMapper itemMapper;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
+    private final BookingForItemResponseMapper bookingForItemResponseMapper;
+    private final CommentMapper commentMapper;
+    private final ItemWitchBookingsMapper itemWitchBookingsMapper;
+
 
     @Override
-    public ItemDto create(long id, PostItemDto postItemDto) {
+    public ItemResponseDto create(Long id, ItemCreateRequestDto itemCreateRequestDto) {
+        User owner = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с таким id не найден."));
 
-        Item item = convertPostItemDtoToItem(postItemDto);
-        item.setOwnerId(id);
-        userRepository.getById(item.getOwnerId());
+        Item item = itemMapper.convertToItemDto((itemCreateRequestDto));
+        item.setOwner(owner);
 
-        return convertItemToItemDto(itemRepository.create(item));
+        return itemMapper.convertToResponseDto(itemRepository.save(item));
     }
 
     @Override
-    public ItemDto update(long id, PatchItemDto patchItemDto, long userId) {
-        validatePatchItemDto(patchItemDto);
-        userRepository.getById(userId);
-        Item item = itemRepository.getById(id);
-        if (item.getOwnerId() != userId) {
+    public ItemResponseDto update(Long itemId, ItemUpdateRequestDto itemUpdateRequestDto, Long userId) {
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с таким id не найден."));
+
+        Item item = getOnlyItemById(itemId);
+
+        if (item.getOwner().getId() != userId) {
             throw new AccessDeniedException("Данный пользователь не может изменить вещь");
+        } else {
+            if (itemUpdateRequestDto.getName() != null) {
+                item.setName(itemUpdateRequestDto.getName());
+            }
+            if (itemUpdateRequestDto.getDescription() != null) {
+                item.setDescription(itemUpdateRequestDto.getDescription());
+            }
+            if (itemUpdateRequestDto.getAvailable() != null) {
+                item.setAvailable(itemUpdateRequestDto.getAvailable());
+            }
         }
 
-        modelMapper.map(patchItemDto, item);
-
-        return convertItemToItemDto(itemRepository.update(item));
+        return itemMapper.convertToResponseDto(itemRepository.save(item));
     }
 
     @Override
-    public List<ItemDto> getAllItemsByUserId(long userId) {
-        userRepository.getById(userId);
+    public List<ItemWitchBookingResponseDto> getAllItemsByUserId(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден."));
+        List<Item> items = itemRepository.findByOwnerIdOrderByIdAsc(userId);
 
-        return itemRepository.getAllItemsByUserId(userId).stream()
-                .map(this::convertItemToItemDto)
+        List<Long> itemIds = items
+                .stream()
+                .map(Item::getId)
                 .collect(Collectors.toList());
+
+        Map<Long, Booking> lastBookings = new HashMap<>();
+        Map<Long, Booking> nextBookings = new HashMap<>();
+
+        bookingRepository.findByItemIdInAndStatusAndStartLessThanOrderByStart(itemIds, BookingStatus.APPROVED,
+                        LocalDateTime.now())
+                .forEach(it -> lastBookings.put(it.getItem().getId(), it));
+
+        bookingRepository.findByItemIdInAndStatusAndStartGreaterThanOrderByStartDesc(itemIds,
+                        BookingStatus.APPROVED, LocalDateTime.now())
+                .stream()
+                .filter(it -> it.getStart().isAfter(LocalDateTime.now()))
+                .forEach(it -> nextBookings.put(it.getItem().getId(), it));
+
+        List<ItemForResponse> itemWithBookings = new ArrayList<>();
+
+        // Сбор комментариев
+        Map<Long, List<Comment>> commentsMap = commentRepository.findByItemIdIn(itemIds).stream().collect(
+                Collectors.groupingBy(comment -> comment.getItem().getId()));
+
+        //Сбор итогового списка
+        items.forEach(it -> {
+            ItemForResponse item = ItemForResponse.builder()
+                    .id(it.getId())
+                    .name(it.getName())
+                    .description(it.getDescription())
+                    .available(it.getAvailable())
+                    .lastBooking(bookingForItemResponseMapper.convert(lastBookings.get(it.getId())))
+                    .nextBooking(bookingForItemResponseMapper.convert(nextBookings.get(it.getId())))
+                    .comments(commentMapper.convertToCommentResponseDto(commentsMap.get(it.getId())))
+                    .build();
+            itemWithBookings.add(item);
+
+        });
+
+        return itemWitchBookingsMapper.convertToList(itemWithBookings);
     }
 
     @Override
-    public ItemDto getById(long id) {
-        return convertItemToItemDto(itemRepository.getById(id));
+    public ItemWitchBookingResponseDto getById(Long userId, Long itemId) {
+        LocalDateTime now = LocalDateTime.now();
+        Item item = getOnlyItemById(itemId);
+        BookingForItemResponse lastBookings = null;
+        BookingForItemResponse nextBookings = null;
+
+        if (item.getOwner().getId() == userId) {
+
+            lastBookings = bookingForItemResponseMapper
+                    .convert(bookingRepository.findFirstByItemIdAndStatusAndStartLessThanOrderByStartDesc(item.getId(),
+                            BookingStatus.APPROVED, now));
+            nextBookings = bookingForItemResponseMapper.convert(
+                    bookingRepository.findFirstByItemIdAndStatusAndStartGreaterThanOrderByStart(item.getId(),
+                            BookingStatus.APPROVED, now));
+        }
+
+        List<Comment> comments = commentRepository.findByItemId(item.getId());
+
+        return itemWitchBookingsMapper.convert(ItemForResponse.builder()
+                .id(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .available(item.getAvailable())
+                .lastBooking(lastBookings)
+                .nextBooking(nextBookings)
+                .comments(commentMapper.convertToCommentResponseDto(comments))
+                .build());
     }
 
     @Override
-    public List<ItemDto> searchItem(String text) {
+    public List<ItemResponseDto> searchItem(String text) {
+        if (text.isBlank()) {
+            return new ArrayList<>();
+        }
 
-        return text.isBlank() ? new ArrayList<>() : itemRepository.searchItem(text).stream()
-                .map(this::convertItemToItemDto)
+        List<Item> items = itemRepository.search(text);
+        return items.stream()
+                .map(itemMapper::convertToResponseDto)
                 .collect(Collectors.toList());
+
     }
 
     @Override
-    public void delete(long id) {
-        itemRepository.delete(id);
+    public void delete(Long id) {
+        itemRepository.deleteById(id);
     }
 
-    private Item convertPostItemDtoToItem(PostItemDto postItemDto) {
-        return modelMapper.map(postItemDto, Item.class);
-    }
+    @Override
+    @Transactional
+    public CommentResponseDto createComment(Long userId, Long itemId, CommentCreateRequestDto commentCreateRequestDto) {
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден."));
+        Item item = getOnlyItemById(itemId);
 
-    private ItemDto convertItemToItemDto(Item item) {
-        return modelMapper.map(item, ItemDto.class);
-    }
+        Booking userBooking = bookingRepository
+                .findFirstByItemIdAndBookerIdAndEndLessThanAndStatus(itemId, userId, LocalDateTime.now(),
+                        BookingStatus.APPROVED);
 
-    private void validatePatchItemDto(PatchItemDto patchItemDto) {
-        if (patchItemDto.getName() != null && (patchItemDto.getName().isEmpty() || patchItemDto.getName().isBlank())) {
-            throw new ValidationException("Название не может быть пустым");
+        if (userBooking == null) {
+            throw new BookingException("Не было аренды данной вещи пользователем.");
         }
-        if (patchItemDto.getDescription() != null && (patchItemDto.getDescription().isEmpty() || patchItemDto.getDescription().isBlank())) {
-            throw new ValidationException("Описание не может быть пустым");
+
+        Comment comment = commentMapper.convertToComment(commentCreateRequestDto);
+
+        comment.setCreated(LocalDateTime.now());
+        comment.setAuthor(author);
+        comment.setItem(item);
+
+        return commentMapper.convertToCommentResponseDto(commentRepository.save(comment));
+    }
+
+    public Item getOnlyItemById(Long itemId) {
+        if (itemId == null) {
+            throw new RuntimeException("itemId = null");
         }
+
+        return itemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Предмет с данным id не найден."));
     }
 }

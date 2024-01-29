@@ -1,10 +1,12 @@
 package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.DuplicateEmailException;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.user.dto.UserCreateDto;
+import ru.practicum.shareit.user.dto.UserResponseDto;
+import ru.practicum.shareit.user.dto.UserUpdateDto;
+import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -16,62 +18,50 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    private final UserMapper userMapper;
 
     @Override
-    public UserDto create(UserDto userDto) {
-        User user = convertToUser(userDto);
-        if (checkUserWithEmail(user.getId(), user.getEmail())) {
-            throw new DuplicateEmailException("Пользователь с таким email уже существует");
-        }
+    public UserResponseDto create(UserCreateDto userCreateDto) {
 
-        return convertToUserDto(userRepository.create(user));
+        return userMapper.convertToUserResponse(userRepository.save(userMapper.convertToUser(userCreateDto)));
     }
 
     @Override
-    public UserDto update(long userId, UserDto userDto) {
-        if (checkUserWithEmail(userId, userDto.getEmail())) {
-            throw new DuplicateEmailException("Пользователь с таким email уже существует");
+    public UserResponseDto update(Long userId, UserUpdateDto userUpdateDto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь c данным id не найден"));
+
+        checkUserWithEmail(userId, user.getEmail());
+        if (userUpdateDto.getName() != null) {
+            user.setName(userUpdateDto.getName());
+        }
+        if (userUpdateDto.getEmail() != null) {
+            user.setEmail(userUpdateDto.getEmail());
         }
 
-        User updatedUser = userRepository.getById(userId);
-        if (userDto.getName() != null) {
-            updatedUser.setName(userDto.getName());
-        }
-        if (userDto.getEmail() != null) {
-            updatedUser.setEmail(userDto.getEmail());
-        }
-
-        return convertToUserDto(userRepository.update(updatedUser));
+        return userMapper.convertToUserResponse(userRepository.save((user)));
     }
 
     @Override
-    public UserDto getById(Long userId) {
-        return convertToUserDto(userRepository.getById(userId));
+    public UserResponseDto getById(Long userId) {
+        return userMapper.convertToUserResponse(userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден")));
     }
 
     @Override
-    public List<UserDto> getAll() {
-        return userRepository.getAll().stream()
-                .map(this::convertToUserDto)
+    public List<UserResponseDto> getAll() {
+        return userRepository.findAll().stream()
+                .map(userMapper::convertToUserResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public void delete(Long userId) {
-        userRepository.delete(userId);
+        userRepository.deleteById(userId);
     }
 
-    private User convertToUser(UserDto userDto) {
-        return modelMapper.map(userDto, User.class);
-    }
-
-    private UserDto convertToUserDto(User user) {
-        return modelMapper.map(user, UserDto.class);
-    }
-
-    private boolean checkUserWithEmail(long id, String email) {
-        return userRepository.getAll().stream()
+    private boolean checkUserWithEmail(Long id, String email) {
+        return userRepository.findAll().stream()
                 .filter(user -> user.getId() != id)
                 .map(User::getEmail)
                 .anyMatch(e -> e.equals(email));
