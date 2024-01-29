@@ -62,7 +62,7 @@ public class UserServiceImpl implements UserService {
 
     private boolean checkUserWithEmail(Long id, String email) {
         return userRepository.findAll().stream()
-                .filter(user -> user.getId() != id)
+                .filter(user -> !user.getId().equals(id))
                 .map(User::getEmail)
                 .anyMatch(e -> e.equals(email));
     }
