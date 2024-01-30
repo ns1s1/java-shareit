@@ -45,9 +45,9 @@ public class ItemServiceImpl implements ItemService {
 
 
     @Override
+    @Transactional
     public ItemResponseDto create(Long id, ItemCreateRequestDto itemCreateRequestDto) {
-        User owner = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с таким id не найден."));
+        User owner = getUserById(id);
 
         Item item = itemMapper.convertToItemDto((itemCreateRequestDto));
         item.setOwner(owner);
@@ -56,11 +56,9 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public ItemResponseDto update(Long itemId, ItemUpdateRequestDto itemUpdateRequestDto, Long userId) {
-
-        userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с таким id не найден."));
-
+        getUserById(userId);
         Item item = getOnlyItemById(itemId);
 
         if (!item.getOwner().getId().equals(userId)) {
@@ -82,33 +80,16 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemWitchBookingResponseDto> getAllItemsByUserId(Long userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден."));
-        List<Item> items = itemRepository.findByOwnerIdOrderByIdAsc(userId);
+        getUserById(userId);
+        LocalDateTime now = LocalDateTime.now();
+        List<Item> items = getListItems(userId);
+        List<Long> itemIds = getListItemIds(items);
 
-        List<Long> itemIds = items
-                .stream()
-                .map(Item::getId)
-                .collect(Collectors.toList());
-
-        Map<Long, Booking> lastBookings = new HashMap<>();
-        Map<Long, Booking> nextBookings = new HashMap<>();
-
-        bookingRepository.findByItemIdInAndStatusAndStartLessThanOrderByStart(itemIds, BookingStatus.APPROVED,
-                        LocalDateTime.now())
-                .forEach(it -> lastBookings.put(it.getItem().getId(), it));
-
-        bookingRepository.findByItemIdInAndStatusAndStartGreaterThanOrderByStartDesc(itemIds,
-                        BookingStatus.APPROVED, LocalDateTime.now())
-                .stream()
-                .filter(it -> it.getStart().isAfter(LocalDateTime.now()))
-                .forEach(it -> nextBookings.put(it.getItem().getId(), it));
+        Map<Long, Booking> lastBookings = findLastBooking(itemIds, BookingStatus.APPROVED, now);
+        Map<Long, Booking> nextBookings = findNextBooking(itemIds, BookingStatus.APPROVED, now);
+        Map<Long, List<Comment>> commentsMap = collectingComments(itemIds);
 
         List<ItemForResponse> itemWithBookings = new ArrayList<>();
-
-        // Сбор комментариев
-        Map<Long, List<Comment>> commentsMap = commentRepository.findByItemIdIn(itemIds).stream().collect(
-                Collectors.groupingBy(comment -> comment.getItem().getId()));
 
         //Сбор итогового списка
         items.forEach(it -> {
@@ -122,7 +103,6 @@ public class ItemServiceImpl implements ItemService {
                     .comments(commentMapper.convertToCommentResponseDto(commentsMap.get(it.getId())))
                     .build();
             itemWithBookings.add(item);
-
         });
 
         return itemWitchBookingsMapper.convertToList(itemWithBookings);
@@ -136,7 +116,6 @@ public class ItemServiceImpl implements ItemService {
         BookingForItemResponse nextBookings = null;
 
         if (item.getOwner().getId().equals(userId)) {
-
             lastBookings = bookingForItemResponseMapper
                     .convert(bookingRepository.findFirstByItemIdAndStatusAndStartLessThanOrderByStartDesc(item.getId(),
                             BookingStatus.APPROVED, now));
@@ -172,6 +151,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         itemRepository.deleteById(id);
     }
@@ -179,8 +159,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public CommentResponseDto createComment(Long userId, Long itemId, CommentCreateRequestDto commentCreateRequestDto) {
-        User author = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден."));
+        User author = getUserById(userId);
         Item item = getOnlyItemById(itemId);
 
         Booking userBooking = bookingRepository
@@ -207,5 +186,47 @@ public class ItemServiceImpl implements ItemService {
 
         return itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Предмет с данным id не найден."));
+    }
+
+    private User getUserById(Long id) {
+        if (id == null) {
+            throw new RuntimeException("userId = null");
+        }
+
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден."));
+    }
+
+    private Map<Long, Booking> findLastBooking(List<Long> itemIds, BookingStatus status, LocalDateTime now) {
+        Map<Long, Booking> lastBookings = new HashMap<>();
+        bookingRepository.findByItemIdInAndStatusAndStartLessThanOrderByStart(itemIds, BookingStatus.APPROVED,
+                        now)
+                .forEach(it -> lastBookings.put(it.getItem().getId(), it));
+        return lastBookings;
+    }
+
+    private Map<Long, Booking> findNextBooking(List<Long> itemIds, BookingStatus status, LocalDateTime now) {
+        Map<Long, Booking> nextBookings = new HashMap<>();
+        bookingRepository.findByItemIdInAndStatusAndStartGreaterThanOrderByStartDesc(itemIds,
+                        BookingStatus.APPROVED, now)
+                .stream()
+                .filter(it -> it.getStart().isAfter(LocalDateTime.now()))
+                .forEach(it -> nextBookings.put(it.getItem().getId(), it));
+        return nextBookings;
+    }
+
+    private List<Long> getListItemIds(List<Item> items) {
+        return items.stream()
+                .map(Item::getId)
+                .collect(Collectors.toList());
+    }
+
+    private List<Item> getListItems(Long userId) {
+        return itemRepository.findByOwnerIdOrderByIdAsc(userId);
+    }
+
+    private Map<Long, List<Comment>> collectingComments(List<Long> itemIds) {
+        return commentRepository.findByItemIdIn(itemIds).stream().collect(
+                Collectors.groupingBy(comment -> comment.getItem().getId()));
     }
 }
