@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.model;
 
 import lombok.Data;
+import lombok.ToString;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
@@ -8,6 +9,7 @@ import javax.persistence.*;
 @Data
 @Entity
 @Table(name = "items")
+@ToString(exclude = "owner")
 public class Item {
 
     @Id

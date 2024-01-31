@@ -1,6 +1,7 @@
 package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
@@ -14,8 +15,10 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -24,17 +27,17 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDto create(UserCreateDto userCreateDto) {
-
+        log.debug("[UserServiceImpl][create] user = {}", userCreateDto);
         return userMapper.convertToUserResponse(userRepository.save(userMapper.convertToUser(userCreateDto)));
     }
 
     @Override
     @Transactional
     public UserResponseDto update(Long userId, UserUpdateDto userUpdateDto) {
+        log.debug("[UserServiceImpl][update] userId = {}, userUpdateDto = {}", userId, userUpdateDto);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь c данным id не найден"));
 
-        checkUserWithEmail(userId, user.getEmail());
         if (userUpdateDto.getName() != null) {
             user.setName(userUpdateDto.getName());
         }
@@ -47,12 +50,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDto getById(Long userId) {
+        log.debug("[UserServiceImpl][getById] userId = {}", userId);
         return userMapper.convertToUserResponse(userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден")));
     }
 
     @Override
     public List<UserResponseDto> getAll() {
+        log.debug("[UserServiceImpl][getAll]");
         return userRepository.findAll().stream()
                 .map(userMapper::convertToUserResponse)
                 .collect(Collectors.toList());
@@ -61,13 +66,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void delete(Long userId) {
+        log.debug("[UserServiceImpl][delete] userId = {}", userId);
         userRepository.deleteById(userId);
-    }
-
-    private boolean checkUserWithEmail(Long id, String email) {
-        return userRepository.findAll().stream()
-                .filter(user -> !user.getId().equals(id))
-                .map(User::getEmail)
-                .anyMatch(e -> e.equals(email));
     }
 }

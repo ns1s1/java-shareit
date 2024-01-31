@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.mapper.BookingForItemResponseMapper;
@@ -30,8 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
@@ -47,6 +50,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public ItemResponseDto create(Long id, ItemCreateRequestDto itemCreateRequestDto) {
+        log.debug("[ItemServiceImpl][create] id = {}, itemCreateRequestDto = {}", id, itemCreateRequestDto);
         User owner = getUserById(id);
 
         Item item = itemMapper.convertToItemDto((itemCreateRequestDto));
@@ -58,6 +62,8 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public ItemResponseDto update(Long itemId, ItemUpdateRequestDto itemUpdateRequestDto, Long userId) {
+        log.debug("[ItemServiceImpl][update] itemId = {}, itemUpdateRequestDto = {}, userId = {}", itemId,
+                itemUpdateRequestDto, userId);
         getUserById(userId);
         Item item = getOnlyItemById(itemId);
 
@@ -80,6 +86,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemWitchBookingResponseDto> getAllItemsByUserId(Long userId) {
+        log.debug("[ItemServiceImpl][getAllItemsByUserId] userId = {}", userId);
         getUserById(userId);
         LocalDateTime now = LocalDateTime.now();
         List<Item> items = getListItems(userId);
@@ -110,6 +117,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemWitchBookingResponseDto getById(Long userId, Long itemId) {
+        log.debug("[ItemServiceImpl][getById] userId = {}, itemId = {}", userId, itemId);
         LocalDateTime now = LocalDateTime.now();
         Item item = getOnlyItemById(itemId);
         BookingForItemResponse lastBookings = null;
@@ -139,6 +147,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemResponseDto> searchItem(String text) {
+        log.debug("[ItemServiceImpl][getById] text = {}", text);
         if (text.isBlank()) {
             return new ArrayList<>();
         }
@@ -153,12 +162,15 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public void delete(Long id) {
+        log.debug("[ItemServiceImpl][delete] id = {}", id);
         itemRepository.deleteById(id);
     }
 
     @Override
     @Transactional
     public CommentResponseDto createComment(Long userId, Long itemId, CommentCreateRequestDto commentCreateRequestDto) {
+        log.debug("[ItemServiceImpl][createComment] userId = {},itemId = {}, commentCreateRequestDto = {}", userId,
+                itemId, commentCreateRequestDto);
         User author = getUserById(userId);
         Item item = getOnlyItemById(itemId);
 
@@ -180,6 +192,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     public Item getOnlyItemById(Long itemId) {
+        log.debug("[ItemServiceImpl][getOnlyItemById] itemId = {}", itemId);
         if (itemId == null) {
             throw new RuntimeException("itemId = null");
         }
@@ -189,6 +202,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private User getUserById(Long id) {
+        log.debug("[ItemServiceImpl][getUserById] id = {}", id);
         if (id == null) {
             throw new RuntimeException("userId = null");
         }
@@ -198,6 +212,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private Map<Long, Booking> findLastBooking(List<Long> itemIds, BookingStatus status, LocalDateTime now) {
+        log.debug("[ItemServiceImpl][findLastBooking] itemIds = {}, status = {}, now = {} ", itemIds, status, now);
         Map<Long, Booking> lastBookings = new HashMap<>();
         bookingRepository.findByItemIdInAndStatusAndStartLessThanOrderByStart(itemIds, BookingStatus.APPROVED,
                         now)
@@ -206,6 +221,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private Map<Long, Booking> findNextBooking(List<Long> itemIds, BookingStatus status, LocalDateTime now) {
+        log.debug("[ItemServiceImpl][findNextBooking] itemIds = {}, status = {}, now = {} ", itemIds, status, now);
         Map<Long, Booking> nextBookings = new HashMap<>();
         bookingRepository.findByItemIdInAndStatusAndStartGreaterThanOrderByStartDesc(itemIds,
                         BookingStatus.APPROVED, now)
@@ -216,16 +232,19 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private List<Long> getListItemIds(List<Item> items) {
+        log.debug("[ItemServiceImpl][getListItemIds] items = {}", items);
         return items.stream()
                 .map(Item::getId)
                 .collect(Collectors.toList());
     }
 
     private List<Item> getListItems(Long userId) {
+        log.debug("[ItemServiceImpl][getListItems] userId = {}", userId);
         return itemRepository.findByOwnerIdOrderByIdAsc(userId);
     }
 
     private Map<Long, List<Comment>> collectingComments(List<Long> itemIds) {
+        log.debug("[ItemServiceImpl][collectingComments] itemIds = {}", itemIds);
         return commentRepository.findByItemIdIn(itemIds).stream().collect(
                 Collectors.groupingBy(comment -> comment.getItem().getId()));
     }

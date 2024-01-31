@@ -1,6 +1,7 @@
 package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingCreateRequestDto;
@@ -22,8 +23,10 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
@@ -38,6 +41,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto create(Long userId, BookingCreateRequestDto bookingCreateRequestDto) {
+        log.debug("[BookingServiceImpl][create] userId = {}, booking = {} ", userId, bookingCreateRequestDto);
         Long itemId = bookingCreateRequestDto.getItemId();
         User user = getUserById(userId);
         Item item = getItemById(itemId);
@@ -63,6 +67,8 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingResponseDto updateStatus(Long userId, Long bookingId, Boolean approved) {
+        log.debug("[BookingServiceImpl][updateStatus] userId = {}, bookingId = {} , approved = {}", userId, bookingId,
+                approved);
         Booking updatedBooking = getBookingById(bookingId);
         getUserById(userId);
 
@@ -84,6 +90,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponseDto getById(Long userId, Long bookingId) {
+        log.debug("[BookingServiceImpl][getById] userId = {}, bookingId = {}", userId, bookingId);
         Booking booking = getBookingById(bookingId);
 
         if (!(booking.getItem().getOwner().getId().equals(userId) || booking.getBooker().getId().equals(userId))) {
@@ -95,6 +102,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponseDto> getAllBookingsByUserId(Long userId, String state) {
+        log.debug("[BookingServiceImpl][getAllBookingsByUserId] userId = {}, state = {}", userId, state);
         getUserById(userId);
 
         switch (checkState(state)) {
@@ -126,6 +134,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponseDto> getAllBookingsByOwnerId(Long ownerId, String state) {
+        log.debug("[BookingServiceImpl][getAllBookingsByUserId] ownerId = {}, state = {}", ownerId, state);
         getUserById(ownerId);
 
         switch (checkState(state.toUpperCase())) {
@@ -157,6 +166,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private User getUserById(Long id) {
+        log.debug("[BookingServiceImpl][getUserById] id = {}", id);
         if (id == null) {
             throw new RuntimeException("userId = null");
         }
@@ -166,6 +176,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private Booking getBookingById(Long bookingId) {
+        log.debug("[BookingServiceImpl][getBookingById] bookingId = {}", bookingId);
         if (bookingId == null) {
             throw new RuntimeException("bookingId = null");
         }
@@ -175,6 +186,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private Item getItemById(Long itemId) {
+        log.debug("[BookingServiceImpl][getItemById] itemId = {}", itemId);
         if (itemId == null) {
             throw new RuntimeException("itemId = null");
         }
@@ -184,6 +196,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingState checkState(String stringState) {
+        log.debug("[BookingServiceImpl][checkState] stringState = {}", stringState);
         try {
             return BookingState.valueOf(stringState);
         } catch (IllegalArgumentException exception) {
