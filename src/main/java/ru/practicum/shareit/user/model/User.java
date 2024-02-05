@@ -1,19 +1,27 @@
 package ru.practicum.shareit.user.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+import javax.persistence.*;
+
 
 @Data
+@Entity
+@Table(name = "users")
+@Builder(toBuilder = true)
+@AllArgsConstructor
+@NoArgsConstructor
 public class User {
-    private long id;
-    @NotBlank
-    @NotEmpty
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String name;
-    @NotEmpty
-    @Email(message = "Почта не валидна", regexp = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$")
+
     private String email;
 }
 

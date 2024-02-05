@@ -1,18 +1,20 @@
 package ru.practicum.shareit.user.dto;
 
-import lombok.Data;
-
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-public class UserDto {
-    private long id;
-    @NotBlank
-    @NotEmpty
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserCreateDto {
+
     private String name;
-    @NotEmpty
+
+    @NotBlank
     @Email(regexp = "^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$")
     private String email;
 }

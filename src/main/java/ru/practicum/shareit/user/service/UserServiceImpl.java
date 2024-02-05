@@ -1,79 +1,72 @@
 package ru.practicum.shareit.user.service;
 
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.exception.DuplicateEmailException;
-import ru.practicum.shareit.user.dto.UserDto;
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.user.dto.UserCreateDto;
+import ru.practicum.shareit.user.dto.UserResponseDto;
+import ru.practicum.shareit.user.dto.UserUpdateDto;
+import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    private final UserMapper userMapper;
 
     @Override
-    public UserDto create(UserDto userDto) {
-        User user = convertToUser(userDto);
-        if (checkUserWithEmail(user.getId(), user.getEmail())) {
-            throw new DuplicateEmailException("Пользователь с таким email уже существует");
-        }
-
-        return convertToUserDto(userRepository.create(user));
+    @Transactional
+    public UserResponseDto create(UserCreateDto userCreateDto) {
+        log.debug("[UserServiceImpl][create] user = {}", userCreateDto);
+        return userMapper.convertToUserResponse(userRepository.save(userMapper.convertToUser(userCreateDto)));
     }
 
     @Override
-    public UserDto update(long userId, UserDto userDto) {
-        if (checkUserWithEmail(userId, userDto.getEmail())) {
-            throw new DuplicateEmailException("Пользователь с таким email уже существует");
+    @Transactional
+    public UserResponseDto update(Long userId, UserUpdateDto userUpdateDto) {
+        log.debug("[UserServiceImpl][update] userId = {}, userUpdateDto = {}", userId, userUpdateDto);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь c данным id не найден"));
+
+        if (userUpdateDto.getName() != null) {
+            user.setName(userUpdateDto.getName());
+        }
+        if (userUpdateDto.getEmail() != null) {
+            user.setEmail(userUpdateDto.getEmail());
         }
 
-        User updatedUser = userRepository.getById(userId);
-        if (userDto.getName() != null) {
-            updatedUser.setName(userDto.getName());
-        }
-        if (userDto.getEmail() != null) {
-            updatedUser.setEmail(userDto.getEmail());
-        }
-
-        return convertToUserDto(userRepository.update(updatedUser));
+        return userMapper.convertToUserResponse(userRepository.save((user)));
     }
 
     @Override
-    public UserDto getById(Long userId) {
-        return convertToUserDto(userRepository.getById(userId));
+    public UserResponseDto getById(Long userId) {
+        log.debug("[UserServiceImpl][getById] userId = {}", userId);
+        return userMapper.convertToUserResponse(userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с данным id не найден")));
     }
 
     @Override
-    public List<UserDto> getAll() {
-        return userRepository.getAll().stream()
-                .map(this::convertToUserDto)
+    public List<UserResponseDto> getAll() {
+        log.debug("[UserServiceImpl][getAll]");
+        return userRepository.findAll().stream()
+                .map(userMapper::convertToUserResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public void delete(Long userId) {
-        userRepository.delete(userId);
-    }
-
-    private User convertToUser(UserDto userDto) {
-        return modelMapper.map(userDto, User.class);
-    }
-
-    private UserDto convertToUserDto(User user) {
-        return modelMapper.map(user, UserDto.class);
-    }
-
-    private boolean checkUserWithEmail(long id, String email) {
-        return userRepository.getAll().stream()
-                .filter(user -> user.getId() != id)
-                .map(User::getEmail)
-                .anyMatch(e -> e.equals(email));
+        log.debug("[UserServiceImpl][delete] userId = {}", userId);
+        userRepository.deleteById(userId);
     }
 }
