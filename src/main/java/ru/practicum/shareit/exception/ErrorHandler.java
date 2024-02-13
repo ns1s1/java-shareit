@@ -11,14 +11,6 @@ import javax.validation.ValidationException;
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleDuplicateResourceException(DuplicateEmailException ex) {
-        log.error("Пользователь с таким email уже существует {}", ex.getMessage());
-        return new ErrorResponse(ex.getMessage());
-    }
-
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFoundException(final NotFoundException ex) {
