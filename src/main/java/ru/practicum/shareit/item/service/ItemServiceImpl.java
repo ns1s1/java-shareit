@@ -21,6 +21,8 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.model.ItemForResponse;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
@@ -45,6 +47,7 @@ public class ItemServiceImpl implements ItemService {
     private final BookingForItemResponseMapper bookingForItemResponseMapper;
     private final CommentMapper commentMapper;
     private final ItemWitchBookingsMapper itemWitchBookingsMapper;
+    private final ItemRequestRepository itemRequestRepository;
 
 
     @Override
@@ -54,9 +57,22 @@ public class ItemServiceImpl implements ItemService {
         User owner = getUserById(id);
 
         Item item = itemMapper.convertToItemDto((itemCreateRequestDto));
-        item.setOwner(owner);
 
-        return itemMapper.convertToResponseDto(itemRepository.save(item));
+        Item createdItem = Item.builder()
+                .name(item.getName())
+                .description(item.getDescription())
+                .available(item.getAvailable())
+                .owner(owner)
+                .build();
+        if (item.getRequest() != null && item.getRequest().getId() != null) {
+            ItemRequest itemRequest = itemRequestRepository.findById(item.getRequest().getId()).orElse(null);
+            if (itemRequest != null) {
+                createdItem.setRequest(itemRequest);
+            }
+        }
+
+
+        return itemMapper.convertToResponseDto(itemRepository.save(createdItem));
     }
 
     @Override

@@ -2,6 +2,9 @@ package ru.practicum.shareit.booking.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingCreateRequestDto;
@@ -101,65 +104,74 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingResponseDto> getAllBookingsByUserId(Long userId, String state) {
-        log.debug("[BookingServiceImpl][getAllBookingsByUserId] userId = {}, state = {}", userId, state);
+    public List<BookingResponseDto> getAllBookingsByUserId(Long userId, String state, Integer from, Integer size) {
+        log.debug("[BookingServiceImpl][getAllBookingsByUserId] userId = {}, state = {}, from = {}, size = {} ",
+                userId, state, from, size);
         getUserById(userId);
+
+        Pageable page = PageRequest.of(from / size, size, Sort.by("start").descending());
 
         switch (checkState(state)) {
             case ALL:
                 return bookingMapper.convertToListBookingResponseDto(
-                        bookingRepository.findAllByBookerIdOrderByStartDesc(userId));
+                        bookingRepository.findAllByBookerIdOrderByStartDesc(userId, page));
             case PAST:
                 return bookingMapper.convertToListBookingResponseDto(
-                        bookingRepository.findByBookerIdAndEndLessThanOrderByStartDesc(
-                                userId, LocalDateTime.now()));
+                        bookingRepository.findByBookerIdAndEndLessThanOrderByStartDesc(userId, LocalDateTime.now(),
+                                page));
             case FUTURE:
                 return bookingMapper.convertToListBookingResponseDto(
-                        bookingRepository.findByBookerIdAndStartGreaterThanOrderByStartDesc(
-                                userId, LocalDateTime.now()));
+                        bookingRepository.findByBookerIdAndStartGreaterThanOrderByStartDesc(userId, LocalDateTime.now(),
+                                page));
             case CURRENT:
                 return bookingMapper.convertToListBookingResponseDto(
                         bookingRepository.findByBookerIdAndStartLessThanEqualAndEndGreaterThanEqualOrderByStartDesc(
-                                userId, LocalDateTime.now(), LocalDateTime.now()));
+                                userId, LocalDateTime.now(), LocalDateTime.now(), page));
             case WAITING:
                 return bookingMapper.convertToListBookingResponseDto(
-                        bookingRepository.findByBookerIdAndStatusIsOrderByStartDesc(userId, BookingStatus.WAITING));
+                        bookingRepository.findByBookerIdAndStatusIsOrderByStartDesc(userId, BookingStatus.WAITING,
+                                page));
             case REJECTED:
                 return bookingMapper.convertToListBookingResponseDto(
-                        bookingRepository.findByBookerIdAndStatusIsOrderByStartDesc(userId, BookingStatus.REJECTED));
+                        bookingRepository.findByBookerIdAndStatusIsOrderByStartDesc(userId, BookingStatus.REJECTED,
+                                page));
             default:
                 throw new UnsupportedOperationException("Такого статуса нет");
         }
     }
 
     @Override
-    public List<BookingResponseDto> getAllBookingsByOwnerId(Long ownerId, String state) {
-        log.debug("[BookingServiceImpl][getAllBookingsByUserId] ownerId = {}, state = {}", ownerId, state);
+    public List<BookingResponseDto> getAllBookingsByOwnerId(Long ownerId, String state, Integer from, Integer size) {
+        log.debug("[BookingServiceImpl][getAllBookingsByOwnerId] userId = {}, state = {}, from = {}, size = {} ",
+                ownerId, state, from, size);
         getUserById(ownerId);
+
+        Pageable page = PageRequest.of(from / size, size, Sort.by("start").descending());
 
         switch (checkState(state.toUpperCase())) {
             case ALL:
                 return bookingMapper.convertToListBookingResponseDto(
-                        bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId));
+                        bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId, page));
             case PAST:
-                return bookingMapper.convertToListBookingResponseDto(bookingRepository
-                        .findByItemOwnerIdAndEndLessThanOrderByStartDesc(ownerId, LocalDateTime.now()));
+                return bookingMapper.convertToListBookingResponseDto(
+                        bookingRepository.findByItemOwnerIdAndEndLessThanOrderByStartDesc(ownerId, LocalDateTime.now(),
+                        page));
             case FUTURE:
                 return bookingMapper.convertToListBookingResponseDto(
                         bookingRepository.findByItemOwnerIdAndStartGreaterThanOrderByStartDesc(ownerId,
-                                LocalDateTime.now()));
+                                LocalDateTime.now(), page));
             case CURRENT:
                 return bookingMapper.convertToListBookingResponseDto(
                         bookingRepository.findByItemOwnerIdAndStartLessThanEqualAndEndGreaterThanEqualOrderByStartDesc(
-                                ownerId, LocalDateTime.now(), LocalDateTime.now()));
+                                ownerId, LocalDateTime.now(), LocalDateTime.now(), page));
             case WAITING:
                 return bookingMapper.convertToListBookingResponseDto(
-                        bookingRepository.findByItemOwnerIdAndStatusIsOrderByStartDesc(
-                                ownerId, BookingStatus.WAITING));
+                        bookingRepository.findByItemOwnerIdAndStatusIsOrderByStartDesc(ownerId, BookingStatus.WAITING,
+                                page));
             case REJECTED:
                 return bookingMapper.convertToListBookingResponseDto(
                         bookingRepository.findByItemOwnerIdAndStatusIsOrderByStartDesc(
-                                ownerId, BookingStatus.REJECTED));
+                                ownerId, BookingStatus.REJECTED, page));
             default:
                 throw new UnsupportedOperationException("Такого статуса нет");
         }
