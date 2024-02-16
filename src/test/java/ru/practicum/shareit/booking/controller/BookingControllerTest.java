@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.booking.dto.BookingCreateRequestDto;
 import ru.practicum.shareit.booking.dto.BookingResponseDto;
+import ru.practicum.shareit.booking.model.BookingStatus;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.exception.NotFoundException;
 
@@ -19,11 +20,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -31,13 +34,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class BookingControllerTest {
 
     @MockBean
-    BookingService bookingService;
+    private BookingService bookingService;
 
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     private BookingCreateRequestDto bookingCreateRequestDto;
 
@@ -111,7 +114,6 @@ class BookingControllerTest {
     }
 
 
-
     @SneakyThrows
     @Test
     void testCreateUncorrectedEnd() {
@@ -155,12 +157,14 @@ class BookingControllerTest {
     @SneakyThrows
     @Test
     void testUpdateItemApprove() {
+        bookingResponseDto.setStatus(BookingStatus.APPROVED);
         when(bookingService.updateStatus(any(), any(), any())).thenReturn(bookingResponseDto);
 
         mockMvc.perform(patch("/bookings/{bookingId}", 1)
                         .param("approved", "true")
                         .header(USER_ID_HEAD, 1))
-                .andExpect(status().is2xxSuccessful());
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.status", is("APPROVED")));
 
         verify(bookingService, times(1)).updateStatus(any(), any(), any());
     }

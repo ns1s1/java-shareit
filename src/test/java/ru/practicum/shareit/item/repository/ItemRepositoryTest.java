@@ -3,6 +3,7 @@ package ru.practicum.shareit.item.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,10 +17,10 @@ import ru.practicum.shareit.user.repository.UserRepository;
 class ItemRepositoryTest {
 
     @Autowired
-    ItemRepository itemRepository;
+    private ItemRepository itemRepository;
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @BeforeEach
     public void init() {
@@ -54,7 +55,6 @@ class ItemRepositoryTest {
         itemRepository.save(item1);
         itemRepository.save(item2);
     }
-
 
 
     @Test

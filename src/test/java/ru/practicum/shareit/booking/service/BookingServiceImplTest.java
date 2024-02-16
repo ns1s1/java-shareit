@@ -39,19 +39,19 @@ import static org.mockito.Mockito.*;
 class BookingServiceImplTest {
 
     @Mock
-    BookingRepository bookingRepository;
+    private BookingRepository bookingRepository;
 
     @Mock
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Mock
-    ItemRepository itemRepository;
+    private ItemRepository itemRepository;
 
     @Mock
-    BookingMapper bookingMapper;
+    private BookingMapper bookingMapper;
 
     @InjectMocks
-    BookingServiceImpl bookingService;
+    private BookingServiceImpl bookingService;
 
     private BookingResponseDto bookingResponseDto;
     private User booker;
@@ -232,7 +232,7 @@ class BookingServiceImplTest {
     @Test
     void testGetAllBookingsByUserIdAndPastState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-        when(bookingRepository.findByBookerIdAndEndLessThanOrderByStartDesc(anyLong(),any(LocalDateTime.class),
+        when(bookingRepository.findByBookerIdAndEndLessThanOrderByStartDesc(anyLong(), any(LocalDateTime.class),
                 any(Pageable.class))).thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -246,7 +246,7 @@ class BookingServiceImplTest {
     @Test
     void testGetAllBookingsByUserIdAndFutureState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-        when(bookingRepository.findByBookerIdAndStartGreaterThanOrderByStartDesc(anyLong(),any(LocalDateTime.class),
+        when(bookingRepository.findByBookerIdAndStartGreaterThanOrderByStartDesc(anyLong(), any(LocalDateTime.class),
                 any(Pageable.class))).thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -254,7 +254,7 @@ class BookingServiceImplTest {
         assertEquals(bookings.size(), 1);
         assertEquals(bookings.get(0), bookingResponseDto);
 
-        verify(bookingRepository, times(1)). findByBookerIdAndStartGreaterThanOrderByStartDesc(any(), any(), any());
+        verify(bookingRepository, times(1)).findByBookerIdAndStartGreaterThanOrderByStartDesc(any(), any(), any());
     }
 
     @Test
@@ -262,7 +262,7 @@ class BookingServiceImplTest {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
         when(bookingRepository
                 .findByBookerIdAndStartLessThanEqualAndEndGreaterThanEqualOrderByStartDesc(
-                anyLong(),any(LocalDateTime.class), any(LocalDateTime.class),any(Pageable.class)))
+                        anyLong(), any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class)))
                 .thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -278,7 +278,7 @@ class BookingServiceImplTest {
     void testGetAllBookingsByUserIdAndWaitingState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
         when(bookingRepository.findByBookerIdAndStatusIsOrderByStartDesc(
-                anyLong(),any(BookingStatus.WAITING.getClass()), any(Pageable.class)))
+                anyLong(), any(BookingStatus.WAITING.getClass()), any(Pageable.class)))
                 .thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -294,7 +294,7 @@ class BookingServiceImplTest {
     void testGetAllBookingsByUserIdAndRejectedState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
         when(bookingRepository.findByBookerIdAndStatusIsOrderByStartDesc(
-                anyLong(),any(BookingStatus.REJECTED.getClass()), any(Pageable.class)))
+                anyLong(), any(BookingStatus.REJECTED.getClass()), any(Pageable.class)))
                 .thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -342,7 +342,7 @@ class BookingServiceImplTest {
     @Test
     void testGetAllBookingsByOwnerIdAndPastState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-        when(bookingRepository.findByItemOwnerIdAndEndLessThanOrderByStartDesc(anyLong(),any(LocalDateTime.class),
+        when(bookingRepository.findByItemOwnerIdAndEndLessThanOrderByStartDesc(anyLong(), any(LocalDateTime.class),
                 any(Pageable.class))).thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -356,7 +356,7 @@ class BookingServiceImplTest {
     @Test
     void testGetAllBookingsByOwnerIdAndFutureState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
-        when(bookingRepository.findByItemOwnerIdAndStartGreaterThanOrderByStartDesc(anyLong(),any(LocalDateTime.class),
+        when(bookingRepository.findByItemOwnerIdAndStartGreaterThanOrderByStartDesc(anyLong(), any(LocalDateTime.class),
                 any(Pageable.class))).thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -372,7 +372,7 @@ class BookingServiceImplTest {
     void testGetAllBookingsByOwnerIdAndCurrentState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
         when(bookingRepository.findByItemOwnerIdAndStartLessThanEqualAndEndGreaterThanEqualOrderByStartDesc(
-                anyLong(),any(LocalDateTime.class), any(LocalDateTime.class),any(Pageable.class)))
+                anyLong(), any(LocalDateTime.class), any(LocalDateTime.class), any(Pageable.class)))
                 .thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -388,7 +388,7 @@ class BookingServiceImplTest {
     void testGetAllBookingsByOwnerIdAndWaitingState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
         when(bookingRepository.findByItemOwnerIdAndStatusIsOrderByStartDesc(
-                anyLong(),any(BookingStatus.WAITING.getClass()), any(Pageable.class)))
+                anyLong(), any(BookingStatus.WAITING.getClass()), any(Pageable.class)))
                 .thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 
@@ -404,7 +404,7 @@ class BookingServiceImplTest {
     void testGetAllBookingsByOwnerIdAndRejectedState() {
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(booker));
         when(bookingRepository.findByItemOwnerIdAndStatusIsOrderByStartDesc(
-                anyLong(),any(BookingStatus.REJECTED.getClass()), any(Pageable.class)))
+                anyLong(), any(BookingStatus.REJECTED.getClass()), any(Pageable.class)))
                 .thenReturn(List.of(booking));
         when(bookingMapper.convertToListBookingResponseDto(List.of(booking))).thenReturn(List.of(bookingResponseDto));
 

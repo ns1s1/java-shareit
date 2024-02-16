@@ -13,14 +13,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.service.ItemService;
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -28,22 +31,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ItemControllerTest {
 
     @MockBean
-    ItemService itemService;
+    private ItemService itemService;
 
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
     @Autowired
-    MockMvc mockMvc;
+    private MockMvc mockMvc;
 
-    ItemResponseDto itemResponseDto;
+    private ItemResponseDto itemResponseDto;
 
-    ItemCreateRequestDto itemCreateRequestDto;
+    private ItemCreateRequestDto itemCreateRequestDto;
 
-    ItemWitchBookingResponseDto itemWitchBookingResponseDto;
+    private ItemWitchBookingResponseDto itemWitchBookingResponseDto;
 
-    CommentCreateRequestDto commentCreateRequestDto;
+    private CommentCreateRequestDto commentCreateRequestDto;
 
-    CommentResponseDto commentResponseDto;
+    private CommentResponseDto commentResponseDto;
 
     private static final String USER_ID_HEAD = "X-Sharer-User-Id";
 
@@ -135,6 +138,11 @@ class ItemControllerTest {
         itemUpdateRequestDto.setName("update");
         itemUpdateRequestDto.setDescription("update description");
         itemUpdateRequestDto.setAvailable(true);
+
+        itemResponseDto.setName("update");
+        itemResponseDto.setDescription("update description");
+        itemResponseDto.setAvailable(true);
+
         when(itemService.update(any(), any(), any())).thenReturn(itemResponseDto);
 
         mockMvc.perform(patch("/items/{itemId}", 1)
@@ -142,7 +150,10 @@ class ItemControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header(USER_ID_HEAD, 1)
                         .characterEncoding(StandardCharsets.UTF_8))
-                .andExpect(status().is2xxSuccessful());
+                .andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.name", is("update")))
+                .andExpect(jsonPath("$.description", is("update description")))
+                .andExpect(jsonPath("$.available", is(true)));
 
         verify(itemService, times(1)).update(any(), any(), any());
     }

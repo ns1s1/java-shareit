@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserResponseDto;
@@ -27,13 +28,13 @@ import java.util.Optional;
 class UserServiceImplTest {
 
     @Mock
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Mock
-    UserMapper userMapper;
+    private UserMapper userMapper;
 
     @InjectMocks
-    UserServiceImpl userService;
+    private UserServiceImpl userService;
 
     private UserCreateDto userCreateDto;
     private UserResponseDto userResponseDto;
@@ -60,7 +61,6 @@ class UserServiceImplTest {
         assertEquals(userResponseTest, userResponseDto);
         verify(userRepository, times(1)).save(user);
     }
-
 
     @Test
     void testUpdateUser() {

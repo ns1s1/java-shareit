@@ -27,6 +27,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto create(UserCreateDto userCreateDto) {
         log.debug("[UserServiceImpl][create] user = {}", userCreateDto);
+
+
         return userMapper.convertToUserResponse(userRepository.save(userMapper.convertToUser(userCreateDto)));
     }
 

@@ -27,7 +27,6 @@ import ru.practicum.shareit.user.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
 
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -39,34 +38,34 @@ import static org.hamcrest.Matchers.equalTo;
 class ItemServiceImplTest {
 
     @InjectMocks
-    ItemServiceImpl itemService;
+    private ItemServiceImpl itemService;
 
     @Mock
-    ItemRepository itemRepository;
+    private ItemRepository itemRepository;
 
     @Mock
-     UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Mock
-    ItemMapper itemMapper;
+    private ItemMapper itemMapper;
 
     @Mock
-    BookingRepository bookingRepository;
+    private BookingRepository bookingRepository;
 
     @Mock
-    CommentRepository commentRepository;
+    private CommentRepository commentRepository;
 
     @Mock
-    CommentMapper commentMapper;
+    private CommentMapper commentMapper;
 
     @Mock
-    ItemWitchBookingsMapper itemWitchBookingsMapper;
+    private ItemWitchBookingsMapper itemWitchBookingsMapper;
 
     @Mock
-    BookingForItemResponseMapper bookingForItemResponseMapper;
+    private BookingForItemResponseMapper bookingForItemResponseMapper;
 
     @Mock
-    ItemRequestRepository itemRequestRepository;
+    private ItemRequestRepository itemRequestRepository;
 
     private User owner;
     private ItemResponseDto itemResponseDto;
@@ -78,7 +77,6 @@ class ItemServiceImplTest {
     private Booking booking;
     private CommentCreateRequestDto commentCreateRequestDto;
     private Comment comment;
-
 
 
     @BeforeEach
@@ -260,8 +258,6 @@ class ItemServiceImplTest {
 
         assertEquals("Не было аренды данной вещи пользователем.", bookingException.getMessage());
     }
-
-
 
 
 }
