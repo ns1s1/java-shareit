@@ -1,14 +1,12 @@
 package ru.practicum.shareit.user.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
 
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
 @Builder(toBuilder = true)
@@ -22,6 +20,7 @@ public class User {
 
     private String name;
 
+    @Column(unique = true)
     private String email;
 }
 

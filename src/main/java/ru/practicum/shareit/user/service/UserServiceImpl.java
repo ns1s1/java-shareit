@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.user.dto.UserCreateDto;
 import ru.practicum.shareit.user.dto.UserResponseDto;
-import ru.practicum.shareit.user.dto.UserUpdateDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
@@ -28,21 +27,23 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto create(UserCreateDto userCreateDto) {
         log.debug("[UserServiceImpl][create] user = {}", userCreateDto);
+
+
         return userMapper.convertToUserResponse(userRepository.save(userMapper.convertToUser(userCreateDto)));
     }
 
     @Override
     @Transactional
-    public UserResponseDto update(Long userId, UserUpdateDto userUpdateDto) {
-        log.debug("[UserServiceImpl][update] userId = {}, userUpdateDto = {}", userId, userUpdateDto);
+    public UserResponseDto update(Long userId, User userUpdate) {
+        log.debug("[UserServiceImpl][update] userId = {}, userUpdate = {}", userId, userUpdate);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь c данным id не найден"));
 
-        if (userUpdateDto.getName() != null) {
-            user.setName(userUpdateDto.getName());
+        if (userUpdate.getName() != null) {
+            user.setName(userUpdate.getName());
         }
-        if (userUpdateDto.getEmail() != null) {
-            user.setEmail(userUpdateDto.getEmail());
+        if (userUpdate.getEmail() != null) {
+            user.setEmail(userUpdate.getEmail());
         }
 
         return userMapper.convertToUserResponse(userRepository.save((user)));
