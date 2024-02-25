@@ -28,7 +28,7 @@ public class ItemClient extends BaseClient {
     }
 
     public ResponseEntity<Object> create(Long id, ItemCreateRequest itemCreateRequest) {
-        return post("", id, itemCreateRequest );
+        return post("", id, itemCreateRequest);
     }
 
     public ResponseEntity<Object> update(Long itemId, Long userId, ItemUpdateRequest itemUpdateRequest) {
@@ -44,9 +44,7 @@ public class ItemClient extends BaseClient {
     }
 
     public ResponseEntity<Object> searchItem(Long userId, String text) {
-        Map<String, Object> parameters = Map.of(
-                "text", text
-        );
+        Map<String, Object> parameters = Map.of("text", text);
         return get("/search?text={text}", userId, parameters);
     }
 
