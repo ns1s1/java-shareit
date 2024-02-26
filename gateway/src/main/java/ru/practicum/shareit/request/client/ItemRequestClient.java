@@ -18,6 +18,8 @@ public class ItemRequestClient extends BaseClient {
 
     private static final String API_PREFIX = "/requests";
 
+    private static final String PATCH = "/all?from={from}&size={size}";
+
     @Autowired
     public ItemRequestClient(@Value("${shareit-server.url}") String serverUrl, RestTemplateBuilder builder) {
         super(
@@ -45,6 +47,6 @@ public class ItemRequestClient extends BaseClient {
                 "from", from,
                 "size", size
         );
-        return get("/all?from={from}&size={size}", userId, parameters);
+        return get(PATCH, userId, parameters);
     }
 }

@@ -17,6 +17,7 @@ public class ItemClient extends BaseClient {
 
     private static final String API_PREFIX = "/items";
 
+    private static final String PATCH = "/search?text={text}";
     @Autowired
     public ItemClient(@Value("${shareit-server.url}") String serverUrl, RestTemplateBuilder builder) {
         super(
@@ -45,7 +46,7 @@ public class ItemClient extends BaseClient {
 
     public ResponseEntity<Object> searchItem(Long userId, String text) {
         Map<String, Object> parameters = Map.of("text", text);
-        return get("/search?text={text}", userId, parameters);
+        return get(PATCH, userId, parameters);
     }
 
     public void delete(Long id) {

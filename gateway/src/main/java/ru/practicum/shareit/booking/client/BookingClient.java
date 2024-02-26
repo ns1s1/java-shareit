@@ -17,6 +17,8 @@ import java.util.Map;
 public class BookingClient extends BaseClient {
     private static final String API_PREFIX = "/bookings";
 
+    private static final String PATCH = "?state={state}&from={from}&size={size}";
+
     @Autowired
     public BookingClient(@Value("${shareit-server.url}") String serverUrl, RestTemplateBuilder builder) {
         super(
@@ -48,7 +50,7 @@ public class BookingClient extends BaseClient {
                 "from", from,
                 "size", size
         );
-        return get("?state={state}&from={from}&size={size}", userId, parameters);
+        return get(PATCH, userId, parameters);
     }
 
     public ResponseEntity<Object> getAllBookingsByOwnerId(Long userId, String state, Integer from, Integer size) {
@@ -57,6 +59,6 @@ public class BookingClient extends BaseClient {
                 "from", from,
                 "size", size
         );
-        return get("/owner?state={state}&from={from}&size={size}", userId, parameters);
+        return get("/owner" + PATCH, userId, parameters);
     }
 }
